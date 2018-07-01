@@ -1,0 +1,98 @@
+
+== ライセンス
+
+この作品のコンテンツは次に示す複数のライセンスの下に提供されます
+
+* ページ右上に記載されたロゴ
+** (C) 2017 @takarakasai All Rights Reserved.
+
+image::logo.svg[takarakasaiのロゴ, 88, align="center"]
+
+
+* 表紙
+** (C) 2017 でしぷろんぷと All Rights Reserved.
+
+//[IMPORTANT]
+//=====
+//icon:github[2x, link=https://github.com/o2project/steins-git] リポジトリは https://github.com/o2project/steins-git[o2project/steins-git] です。
+//ここにきょんさまの絵が入ります
+//=====
+
+
+* その他の本文及びそれに関連する独自に作成した図
+** クリエイティブ・コモンズ 表示 - 非営利 - 継承 4.0 国際 ライセンスの下に提供されています
+** クレジットは *(C) でしぷろんぷと* になります
+
+image::commons/88x31.png[CC BY NC SA, 88, 31, align="center"]
+
+<<<
+
+[bibliography]
+== 引用
+
+- [[[ref1, 1]]] かわさきロボット競技大会実行委員会事務局, 'かわさきロボット競技大会　ホームページ'.
+  [Online]. Available: http://www.kawasaki-net.ne.jp/robo/. [Accessed: Aug 8, 2017]
+- [[[ref2, 2]]] @takarakasai, 'イヌもどきかわさきロボット　開リンク機構による多様性の提案'. Tokyo: でしぷろんぷと, 2016
+  (コミックマーケットC91にて頒布)
+- [[[ref3, 3]]] かわさきロボット競技大会実行委員会事務局, '第２３回かわさきロボット競技大会　バトルロボット部門　競技規則'.
+  [Online]. Available: http://www.kawasaki-net.ne.jp/robo/23th/battle/rule.html. [Accessed: Aug 8, 2017]
+- [[[ref4, 4]]] マブチモータ, 'RS-380PH'.
+  [Online]. Available: https://www.marutsu.co.jp/contents/shop/marutsu/datasheet/rs380ph.pdf. [Accessed: Aug 8, 2017]
+- [[[ref5, 5]]] beagleboard.org, 'BBB homepage'.
+  [Online]. Available: http://beagleboard.org/black. [Accessed: Aug 8, 2017]
+//- [[[ref11, 11]]] Eric. Brown, 'BeagleBone cape eases acces to the Sitara SoC's PRU', Nov 6 2014.
+//  [Online]. Available: http://linuxgizmos.com/beaglebone-cape-eases-access-to-the-sitara-socs-pru/. [Accessed: Aug 8, 2017]
+
+ifeval::["{backend}" != "html5"]
+== 使用しているフォント
+
+あおぞら明朝（本文） http://blueskis.wktk.so/AozoraMincho/
+
+源真ゴシック(見出し、本文太字など） http://jikasei.me/font/genshin/
+endif::[]
+
+<<<
+
+//[[author]]
+
+== あとがき
+
+本書では工数などの関係から前書では言及しきれなかった電気ハードウェアとソフトウェアを言及することができました。
+次に書く薄い本では、歩行制御を含む全身制御的な部分もしくは本ロボットの物理シミュレーション、流行りのROSへの対応などの
+ネタを書くことができたらと思います。今後もお付き合いいただけましたら幸いです。
+
+本書を作成にあたって
+大会当日のサポートや表紙の作成など本誌執筆のサポートを快くしていただいた@kyo46さん大変助かりました。
+またおかきぬさん、ジャンルは違うものの追い込み時期に励まし合いながら作業することでなんとか書き上げることができました。
+どうもありがとうございました。
+
+それでは イヌもどきかわさきロボット 副題;SBCによる多脚ロボ制御システムの設計と実装 を最後までお読みいただきまことにありがとうございました。
+
+//[eV_prise]
+//.歓喜するeV
+//image::eV/prise.png[width="300", align="center"]
+
+<<<
+
+== 奥付
+
+=== 発行・作者
+
+発行:: でし・ぷろんぷと
+執筆:: @takarakasai footnote:[https://github.com/takarakasai]
+フォロー:: @kyo46 
+印刷:: 製本直送.com footnote:[https://www.seichoku.com]
+発行日:: 2017 年 8 月 10 日 第 1 版 発行
+
+=== Web
+
+http://khoya.net/
+
+http://deshi-prompt.github.io/
+
+=== Mail
+
+====
+ada.robo1@gmail.com
+====
+

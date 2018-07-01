@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?asciidoc-toc?>
+<!DOCTYPE article [<!ENTITY % db5ent PUBLIC "-//FOPUB//ENTITIES Entities for DocBook 5" "db5.ent"> %db5ent;]>
+<article xmlns="http://docbook.org/ns/docbook" xmlns:xl="http://www.w3.org/1999/xlink" version="5.0" xml:lang="ja">
+<info>
+<title>イヌもどきかわさきロボット </title>
+<subtitle>SBCによる多脚ロボ制御システムの設計と実装</subtitle>
+<date>2017-08-08</date>
+<author>
+<personname>
+<firstname>takarakasai</firstname>
+</personname>
+</author>
+<authorinitials>t</authorinitials>
+<revhistory>
+<revision>
+<revnumber>1.0.0</revnumber>
+<date>2017-08-08</date>
+<authorinitials>t</authorinitials>
+</revision>
+</revhistory>
+</info>
+<section xml:id="intro">
+<title>序</title>
+<section xml:id="_はじめに">
+<title>はじめに</title>
+<simpara>本書はでしぷろんぷとが提供する５冊目の技術本になります。
+１冊目 <footnote><simpara>ロボット自主製作概論 @takarakasai著 C89にて頒布</simpara></footnote>ではロボット製作に全般に関して、
+２冊目 <footnote><simpara>ネコろびながらできるロボット開発 @kyo46著 C89にて頒布</simpara></footnote>と
+３冊目 <footnote><simpara>3Dプリンタでロボット開発 @kyo46著 C91にて頒布</simpara></footnote>ではロボットのメカハードウェア制作を扱いました。
+そして
+４冊目 <footnote><simpara>イヌもどきかわさきロボット：開リンク機構による多様性の提案 @takarakasai著 C91にて頒布</simpara></footnote>
+では、かわさきロボット競技大会に参加したイヌもどきロボット <emphasis role="strong">eV</emphasis> (エレクトロンボルト）を題材として
+メカハードウェア含むシステム全般について言及しました。
+本書では、この続きとして具体的なロボットの電気ハードウェアの設計と実装を扱います。</simpara>
+</section>
+<section xml:id="_でしぷろんぷと">
+<title>でしぷろんぷと</title>
+<simpara>でしぷろんぷとは@kyo46と@takarakasaiとが主催するロボット開発集団です。
+活動目的は主に以下の２つになります。</simpara>
+<itemizedlist>
+<listitem>
+<simpara>ロボットを自主製作するための技術的な情報の蓄積・共有</simpara>
+</listitem>
+<listitem>
+<simpara>ロボット製作技術の応用先の検討と実践</simpara>
+</listitem>
+</itemizedlist>
+<simpara>２人の技術的背景の違いから、@kyo46はロボットのハードウェアや設備関連寄りの技術テーマを@takarakasaiはロボットのシステムや制御寄りの技術テーマを
+扱います。両者を合わせることでロボットに関連する技術を網羅的に扱うことが可能となっています。</simpara>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+<section xml:id="_ev_エレクトロンボルト">
+<title>eV (エレクトロンボルト)</title>
+<simpara>eVはイヌもどきロボットです。
+かわさきロボット競技大会 <xref linkend="ref1"/> への参加と、四脚ロボットの制作とそれを利用した制御の勉強という２つの目的を実現するために開発しています。
+2016年現在試作１号機(<xref linkend="ch0_eV2"/>)が完成し、第２３回大会への参加・特別選出出場賞受賞を果たしています。</simpara>
+<figure xml:id="ch0_eV2">
+<title>eV外観</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/eV/2.jpg" contentwidth="200" align="center"/>
+</imageobject>
+<textobject><phrase>300</phrase></textobject>
+</mediaobject>
+</figure>
+</section>
+<section xml:id="_本書の構成">
+<title>本書の構成</title>
+<simpara>本書は全二章とあとがきから構成されます。</simpara>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>第一章では、eVのシステム全体の設計について言及します。</simpara>
+</listitem>
+<listitem>
+<simpara>第二章では、eVの電気ハードウェア設計と実装を説明します。</simpara>
+</listitem>
+<listitem>
+<simpara>あとがきでは、本書を書くにあたり参考にした文献を紹介などを行います。</simpara>
+</listitem>
+</orderedlist>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+</section>
+<section xml:id="background">
+<title>第１章　全体構成</title>
+<simpara>eVはかわさきロボット競技大会(通称かわロボ)の特にバトルロボット部門への参加機体（通称かわロボ）となります。
+そのためシステム構成は大会ルールに適合するように設計されており、全体構成を説明するまえにまず簡単に大会について
+簡単に説明します。</simpara>
+<section xml:id="_かわロボ">
+<title>かわロボ</title>
+<simpara>バトルロボット部門ではフィールド (<xref linkend="ch1_kawa_field"/>) 上の２つの機体が戦います。
+ルールは比較的単純でフィールド外に相手の機体を押し出すかフィールド上で移動不能な状態にすることで勝利が確定します
+(<footnote><simpara>後者の場合は制約条件があったり、他の勝利条件もありますがここでは詳細を省きます。</simpara></footnote>)。
+基本的に機体の操作は製作者による遠隔操縦にて行います。
+自律動作を禁止されているわけではありませんが、採用した機体はほぼ見かけません。
+参加機体にはサイズや重量、通信方式、動力源、機構的及び運動的制約が課されます。</simpara>
+<figure xml:id="ch1_kawa_field">
+<title>かわロボフィールド</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kawa_field/ring_assys.png" contentwidth="400" align="center"/>
+</imageobject>
+<textobject><phrase>ring assys</phrase></textobject>
+</mediaobject>
+</figure>
+</section>
+<section xml:id="_メカハードウェア">
+<title>メカハードウェア</title>
+<simpara>前書 <xref linkend="ref2"/> にてすでにeVのメカハードウェア構成についてすでに説明しているので詳細についてはそちらに譲りますが、
+簡単に説明したいと思います。
+eVのメカ全体構成図および表を以下に再掲します。</simpara>
+<figure xml:id="ch1_spec">
+<title>eV　全体構成</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/eV_basic_design/spec.png" contentwidth="420" align="center"/>
+</imageobject>
+<textobject><phrase>spec</phrase></textobject>
+</mediaobject>
+</figure>
+<section xml:id="_機構構成とサイズ">
+<title>機構構成とサイズ</title>
+<simpara>かわさきロボット競技大会のバトルロボット部門 <xref linkend="ref3"/> のルールでは
+すくなくとも１つの腕機構と脚機構（および補助機構）とにより構成されていることを要求しています。
+さらに腕機構は（詳細は省きますが、）揺動運動を行う閉リンク機構により実現されなければなりません。
+四脚歩行ロボットそのものには腕機構は必要は無いのですが、規定に準拠するために首および顔の咀嚼機構を便宜的に腕機構としています。
+また転倒復帰のための補助機構等として尻尾や首が装備されており、機体の大きさについても250[mm] x 350[mm] x 700[mm]
+（試合開始時）という規定を満たすように設計しています。
+<xref linkend="ch1_spec"/> のように首や尻尾を伸ばした状態ではサイズオーバーとなるため試合開始時はこれらを折りたたんで亀状態になります。</simpara>
+</section>
+<section xml:id="_動力源の構成と重量">
+<title>動力源の構成と重量</title>
+<simpara>一般に小型のロボットの動力源には電磁アクチュエータが多く利用されます。
+かわロボもこの例にもれず、主たるアクチュエータとしてマブチモータ製のRS-380PH <xref linkend="ref4"/> もしくはその互換品が指定されています。
+RS-380PH以外の電磁モータとしては、ラジオ・コントロールカー（RCカー）やホビーロボットに多用されるサーボモータも利用することができます。
+サーボモータに関しては、無限回転制御できる状態で使用してはならないなどの制約はあるものの、製品指定が無いため選択肢が広くなっています。
+一方、多脚ロボットでまともな歩行制御を行おうとした場合多くのアクチュエータが必要となります。
+たとえば四脚ロボットで各脚をシリアルリンク機構で構成して、脚先と地面との接触位置とを制御しようとした場合には12個のアクチュエータが必要となります。かわロボの場合腕機構も必要となるため実際にはこれより多いアクチュエータが必要になります。
+実際eVでは1脚あたり4自由度で補助機構なども含めると全19自由度です。
+これらすべてをRS-380PH（80[g]）で構成した場合にはアクチュエータだけで1520[g]もの重量になります。
+それぞれに減速機を設けるとするとそれだけで3000[g]近くになってしまいます。
+かわロボでは全重量を3300[g]に収めなければならないため、これでは構造部材やバッテリなどのための重量を確保することができません。
+そのためより小型軽量なサーボモータを採用しています。
+この結果構造部材や制御基板等も含めてeVの総重量は3250[g]になります。</simpara>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+</section>
+<section xml:id="_電気ハードウェア">
+<title>電気ハードウェア</title>
+<section xml:id="_要求仕様">
+<title>要求仕様</title>
+<simpara>かわロボの規則により規定されているのは機械的な仕様ばかりではありません。
+以下のような電気的な要求事項があります。</simpara>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>機体との通信には双葉電子工業が製造するRC製品向けのプロポおよび受信機を使用すること</simpara>
+</listitem>
+<listitem>
+<simpara>機体総重量の制約（3300g）があること</simpara>
+</listitem>
+<listitem>
+<simpara>バッテリはNiMH,NiCd,LiFeなどの過放電を行っても安定なものを使用すること</simpara>
+</listitem>
+</orderedlist>
+<simpara>最後の仕様は特に制約事項となるものではありませんが、
+前者の２つはハードウェアの設計に大きく影響します。</simpara>
+</section>
+<section xml:id="_通信仕様">
+<title>通信仕様</title>
+<simpara>RC製品向けのプロポ(<xref linkend="ch1_propo"/>)とは送信機とコントローラが一体となったものです。
+機体側が送信機と通信するためには専用の受信機(<xref linkend="ch1_recv"/>)が必要になります。</simpara>
+<figure xml:id="ch1_propo">
+<title>双葉電子製プロポ 10J <footnote><simpara><link xl:href="https://rc.futaba.co.jp/propo/air/img/10j/img_01.jpg">https://rc.futaba.co.jp/propo/air/img/10j/img_01.jpg</link></simpara></footnote></title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/chapter1/propo.jpg" contentwidth="120" align="center"/>
+</imageobject>
+<textobject><phrase>propo</phrase></textobject>
+</mediaobject>
+</figure>
+<figure xml:id="ch1_recv">
+<title>双葉電子製受信機 R3008SB <footnote><simpara><link xl:href="http://rc.futaba.co.jp/reciever/air04/img/r3008sb.jpg">http://rc.futaba.co.jp/reciever/air04/img/r3008sb.jpg</link></simpara></footnote></title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/chapter1/r3008sb.jpg" contentwidth="80" align="center"/>
+</imageobject>
+<textobject><phrase>r3008sb</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara>左右のジョイスティックを傾斜させた量が送信機から受信機、そしてモータアンプに伝わり、
+モータアンプがアクチュエータの回転速度を変化させることで機体を動作させます。
+サーボモータの場合には傾斜量は回転速度ではなく回転角度に変換されてサーボモータの出力軸の角度が制御されます。
+どちらの場合も、ジョイスティックの傾斜量がそのままアクチュエータ（モータ）の動作に反映されます。
+プロポ操作者の指先加減一つでアクチュエータごとの速度や位置を調整することができるのである意味操作者の意図通りに動かすことができます。
+しかし、多脚ロボットを制御する場合にはすべての脚を正確かつ強調してこまやかに制御する必要があります。
+これにはプロポ操作量（傾斜量）を単純に読み替えてアクチュエータに伝える方法は向きません。
+単純にプロポのスティック数が４つしか無く、そのままでは４自由度分しか操作できないということもあります。
+とにかく、多脚ロボットにおいては受信機がモータアンプやサーボモータと通信する信号を
+正確に読み取り、適切な意味付けを行って多数あるアクチュエータを強調して制御する必要があります。
+受信機が出す信号の把握が肝要ということです。</simpara>
+</section>
+<section xml:id="_受信機通信仕様">
+<title>受信機通信仕様</title>
+<simpara>双葉電子工業製の受信機だけに限らず、多くのRC製品向けの受信機ではPPM <footnote><simpara>Pulse Position Modulation の略語</simpara></footnote>という
+信号を採用しています。
+PPMの信号では一定期間ごとに出力（送出）される矩形波の立ち下がりの時間的位置を操作量として伝達します。
+RC製品向けのPPMでは<xref linkend="ch1_ppms"/>のように、おおよそ20[msec]毎に送出されます <footnote><simpara>メーカなどにより違いがあります</simpara></footnote>。
+矩形部分の詳細を<xref linkend="ch1_ppm"/>に示します。
+プロポのスティックが操作されていない時（ニュートラルポジションの時）には信号の立ち上がり時刻と立ち下がり時刻との差は1500usec
+ですが、スティックの操作量に応じておおよそ1000〜2000usecの間に収まる形で変化します <footnote><simpara>こちらもメーカなどにより違いがあります</simpara></footnote>。
+プロポや受信機にもよりますが、最低でもスティック数分である4ch分のPPM信号が受信機から送出されるので、
+これを取りこぼしなく正確に受信・解釈できるシステムが必要となります。</simpara>
+<figure xml:id="ch1_ppms">
+<title>RC PPM信号周期</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/chapter1/ppms.png" contentwidth="400" align="center"/>
+</imageobject>
+<textobject><phrase>ppms</phrase></textobject>
+</mediaobject>
+</figure>
+<figure xml:id="ch1_ppm">
+<title>RC プロポ操作とPPM信号</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/chapter1/ppm.png" contentwidth="400" align="center"/>
+</imageobject>
+<textobject><phrase>ppm</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara><?asciidoc-pagebreak?></simpara>
+<note>
+<simpara>受信機が送出する信号をPPMではなくPWM (Pulse Width Modulation)と表現している例がありますが、
+PWMとは矩形波の山と谷の比率を調節して見かけ上の電圧値を変化させるために使用する変調方式です。
+PPMのものと同一の信号波をPWMで生成することはできますが、信号の立ち下がりの時間的位置を伝達する
+PPMとは本質的には異なります。</simpara>
+</note>
+<note>
+<simpara>最近はPPMではなく他の通信プロトコルを採用する製品もあります。
+例えば、双葉電子工業製の製品ではS.BUSやS.BUS2といった規格がそれに当たります。
+これを利用することもできるのですが、S.BUS系の通信仕様は正式には公開されていないため、
+自分で仕様を解析する必要があります。
+草の根的に仕様を解析する活動もあるのですが、あまり活発ではありません。
+筆者も軽く調べてみたところ、
+基本的な仕様はすぐに推測できるものの安定した通信を行うためには
+網羅的な仕様の把握が必要そうな割に双方向通信ができるようになるわけでもなく、
+メリットが少ないということがわかりました。
+頑張ればできるのでしょうが労力に見合わないと考えています。</simpara>
+</note>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+<section xml:id="_求められる演算能力">
+<title>求められる演算能力</title>
+<simpara>ここで多脚ロボット別の側面に視野を向けてみましょう。
+多脚ロボットでは地面や対戦相手等からの外力を受けつつ、転ばずに姿勢制御や移動を実現します。
+これにはリアルタイムかつ適応的に脚先の軌道を生成する必要があり、
+脚先の位置・姿勢からアクチュエータの駆動量を求める干渉回避付き逆運動学演算などを行わなければなりません。
+このような演算はかわロボでの仕様例も多いワンチップマイコンなどでは実力不足です。
+さらに、環境認識や軌道計画といった高度な問題設定をも行おうとした場合にはより高い演算能力が求められます。
+このような問題に適用されるアルゴリズムは通常Intel Coreシリーズのようなある程度高スペックなCPUなどを用いて行われます。
+これらを踏まえるとできるだけ高スペックな演算能力をもつデバイス（CPU）を使用する必要があると言えます。</simpara>
+<note>
+<simpara>巷で流行りのミドルウェアであるROS（Robot Operating System）の導入なども考えると、
+Linuxが動作する様なある程度リッチな環境がほしいところです。
+より組み込み機器に合致するであろうROS2等を試してみるというのも考えられますが、
+こちらはまだ黎明期ですのでリスクが大きくなります。
+またROSとの純粋な互換性がなくエコシステムの旨味も得られません。</simpara>
+</note>
+</section>
+<section xml:id="_演算デバイス選定">
+<title>演算デバイス選定</title>
+<simpara>本章のこれまでの議論により
+eVの電気ハードウェアには以下のことが求められていると言えます。</simpara>
+<itemizedlist>
+<listitem>
+<simpara>RC製品向けのPPM信号を取りこぼしなく正確に受信処理できること(ハードリアルタイム性）</simpara>
+</listitem>
+<listitem>
+<simpara>多脚ロボット向けの高度なアルゴリズムを高速にで実行可能なこと</simpara>
+</listitem>
+</itemizedlist>
+<simpara>機体総重量の大部分を機構部品特にアクチュエータが占めざるをえないことを踏まえてると
+小型のシングルボードコンピュータ（SBC）を使用するのが理にかなった選択であると言えます。
+あくまでも趣味の活動ですので、入手性（ネット通販や秋葉原で簡単かつ即時に購入可能）やコスト（10000円以下）
+、情報の入手性（ネット上から必要な情報が十分に手に入ること）を念頭に置くと、以下のようなボードが選択肢としてあがります。</simpara>
+<orderedlist numeration="arabic">
+<listitem>
+<simpara>Raspberry Pi シリーズ</simpara>
+</listitem>
+<listitem>
+<simpara>Arduino シリーズ</simpara>
+</listitem>
+<listitem>
+<simpara>BeagleBone シリーズ</simpara>
+</listitem>
+</orderedlist>
+<simpara>まずRaspberry Pi (以下ラズパイ）ですが、これはハードリアルタイム性能が大きく欠如しています。
+Linuxをベースとした標準的なラズパイ環境では1000〜2000 usecで変化するPPM信号を正確に捉えることはできません。
+実際に試してみましたが全くと行っていいほど使い物になりませんでした。
+次にArduinoですがこれは演算性能が足りません。標準的なArduinoが採用するCPUがAtmegaであることを考えるとこれは自明です。
+このCPUはラズパイなどで使用されるARM系CPUと比べると１０分の１以下の動作周波数しかありません。
+BeagleBoneシリーズですが、BeagleBoneBlack（以下BBB)にはある程度高性能なARM系CPUが採用されています。
+ここはラズパイと同様ですが、BBBが採用しているTI（テキサス・インストゥルメンツ）製のチップには
+Programmable Realtime Unit (PRU)と呼ばれるコプロセッサが搭載されています。
+このPRUはその名の通りユーザが専用のプログラムを生成することができるようになっていまくエコシステムの旨味も得られません。
+以上を踏まえて、eVではBBBを中心としたシステムを設計することとしました。</simpara>
+<important>
+<simpara>PRUはCPUとしてみるとかなり特殊な仕様を持ちます、
+動作周波数が200MHｚと高いリアルタイム性を持つチップとしては高い周波数を持つ一方で
+除算命令が無いなどあまり見ない命令セットを持ちます。
+高級言語（C言語）による開発環境も提供されていますが、
+PRU独特の命令セットの特性上、非効率的な実行コードが生成されやすくなっていると考えられます。
+除算処理を期待したコードの多用は避けるなどの工夫が求められていると言えます。</simpara>
+</important>
+</section>
+</section>
+</section>
+<section xml:id="_第２章_電気ハードウェアの設計と実装">
+<title>第２章　電気ハードウェアの設計と実装</title>
+<simpara>本章では最終的にeVに搭載したBBBによる制御システムハードウェアの設計図(回路図）
+と実装図（実体配線図）の解説を行います。</simpara>
+<section xml:id="_設計">
+<title>設計</title>
+<simpara>BBBをは非常に多機能なSBC(Single Board Computer) <xref linkend="ref5"/> ですが、それでも今回の使用用途にそのまま使用することはできません
+(例えば、コネクタ形状の不一致など）。
+そのため <xref linkend="ch2_ev_design"/> のように自前のドーターボードを作成することで足りない機能を補うことにしました。
+具体的なドーターボードの役割は次の次項にて説明します。</simpara>
+<figure xml:id="ch2_ev_design">
+<title>ev制御ボード外観 <footnote><simpara>BBB画像は <link xl:href="http://beagleboard.org/static/images/black_hardware_details.png">http://beagleboard.org/static/images/black_hardware_details.png</link> より</simpara></footnote></title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/chapter2/ev_bbb_assy.png" contentwidth="33%" align="center"/>
+</imageobject>
+<textobject><phrase>ev bbb assy</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara><?asciidoc-pagebreak?></simpara>
+<section xml:id="_回路図">
+<title>回路図</title>
+<simpara>次ページにevの制御ボードの回路図を示します。
+回路は主に３つのブロックからなります。
+各ブロックと役割を以下に示します</simpara>
+<section xml:id="_ブロック１_電源部">
+<title>ブロック１：電源部</title>
+<simpara>回路図の <emphasis role="strong">左上</emphasis> 部分になります。</simpara>
+<itemizedlist>
+<listitem>
+<simpara>バッテリとの接続</simpara>
+</listitem>
+<listitem>
+<simpara>バッテリ電圧の降圧</simpara>
+</listitem>
+<listitem>
+<simpara>バッテリとサーボモータ間の中継</simpara>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="_ブロック２_受信機側通信部">
+<title>ブロック２：受信機側通信部</title>
+<simpara>回路図の <emphasis role="strong">右上</emphasis> 部分になります。</simpara>
+<itemizedlist>
+<listitem>
+<simpara>受信機と制御基板との接続 <footnote><simpara>受信機のポート番号を明示するためのもので実際のドーターボードには反映されるわけではありません</simpara></footnote></simpara>
+</listitem>
+</itemizedlist>
+</section>
+<section xml:id="_ブロック３_bbb側通信部">
+<title>ブロック３：BBB側通信部</title>
+<simpara>回路図の <emphasis role="strong">下</emphasis> 部分になります。</simpara>
+<itemizedlist>
+<listitem>
+<simpara>BBBと受信機間の信号レベルの変換</simpara>
+</listitem>
+<listitem>
+<simpara>受信機との接続</simpara>
+</listitem>
+</itemizedlist>
+<figure xml:id="ch2_ev_sch">
+<title>ev制御ボードの回路図</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kicad/eV.sch.svg2.png" contentwidth="85%" align="center"/>
+</imageobject>
+<textobject><phrase>eV.sch.svg2</phrase></textobject>
+</mediaobject>
+</figure>
+</section>
+</section>
+</section>
+<section xml:id="_回路図の詳細説明">
+<title>回路図の詳細説明</title>
+<section xml:id="_電源部">
+<title>電源部</title>
+<simpara><xref linkend="ch2_ev_sch_pow"/> は電源部の拡大図です。
+電源部ではバッテリからの配線 (BAT_VddとBAT_GNDと記載) を３端子レギュレータ（７８０５と記載）
+に接続してBBB本体に電源供給 (+5Vと記載)を行っています。
+また、バッテリの電源はコネクタ (P0 CONN_02X03 と記載）を経由してサーボモータに接続しています。
+消費が大きいモータの駆動電力をバッテリから直接供給するためにこのような配線になっています。</simpara>
+<figure xml:id="ch2_ev_sch_pow">
+<title>電源部の拡大図</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kicad/ev_sch_1_3_power.png" contentwidth="30%" align="center"/>
+</imageobject>
+<textobject><phrase>ev sch 1 3 power</phrase></textobject>
+</mediaobject>
+</figure>
+</section>
+<section xml:id="_通信部">
+<title>通信部</title>
+<simpara><xref linkend="ch2_ev_sch_com"/> は通信部の拡大図です。
+BBBは電源供給部分を除くと外部との接続部分は3.3Vの電圧レベルで動作しています。
+一方で前章で触れたとおり受信機の送出するPPM信号の電圧レベルは5.0Vです。
+この差分を埋めるために境界部分で電圧を調整する必要があります。
+具体的にはレベル変換ボードは電圧のリファレンスピン(VCCA, VCCB)から入力された電圧値に従って変換先／元の電圧を決定するため、
+それぞれに3.3Vと5.0Vを入力しています。
+さらにBBBと側のポート（P9の27,28,29,30,31,41,42)をロジックレベル変換ボード
+の+3.3V側 (A0〜A6) に接続しています。一方で、受信機から来た配線(破線で囲まれたto_S3008SBと記載されている
+PPM_1〜PPM_7)は+5.0V側 (B0〜B6) に接続しています。</simpara>
+<figure xml:id="ch2_ev_sch_com">
+<title>通信部の拡大図</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kicad/eV_sch_3_3_bbb.png" contentwidth="26%" align="center"/>
+</imageobject>
+<textobject><phrase>eV sch 3 3 bbb</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+</section>
+<section xml:id="_実体配線図">
+<title>実体配線図</title>
+<simpara>以下にevの制御ボードの回路図を示します。
+みやすさを考えて、背景を緑色にした図も合わせて示します。
+緑色の線が基板の裏側の配線で、赤色の先は基板の表側での配線となっています。</simpara>
+<figure xml:id="ch2_ev_art">
+<title>ev制御ボードの実体配線図</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kicad/eV-brd.svg.png" contentwidth="100%" align="center"/>
+</imageobject>
+<textobject><phrase>eV brd.svg</phrase></textobject>
+</mediaobject>
+</figure>
+<figure xml:id="ch2_ev_art_green">
+<title>ev制御ボードの実体配線図 (背景緑）</title>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/kicad/eV_brd_green.png" contentwidth="20%" align="center"/>
+</imageobject>
+<textobject><phrase>eV brd green</phrase></textobject>
+</mediaobject>
+</figure>
+<simpara><?asciidoc-pagebreak?></simpara>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+</section>
+<section xml:id="_ライセンス">
+<title>ライセンス</title>
+<simpara>この作品のコンテンツは次に示す複数のライセンスの下に提供されます</simpara>
+<itemizedlist>
+<listitem>
+<simpara>ページ右上に記載されたロゴ</simpara>
+<itemizedlist>
+<listitem>
+<simpara>&#169; 2017 @takarakasai All Rights Reserved.</simpara>
+</listitem>
+</itemizedlist>
+</listitem>
+</itemizedlist>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/logo.svg" contentwidth="88" align="center"/>
+</imageobject>
+<textobject><phrase>takarakasaiのロゴ</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<itemizedlist>
+<listitem>
+<simpara>表紙</simpara>
+<itemizedlist>
+<listitem>
+<simpara>&#169; 2017 でしぷろんぷと All Rights Reserved.</simpara>
+</listitem>
+</itemizedlist>
+</listitem>
+</itemizedlist>
+<itemizedlist>
+<listitem>
+<simpara>その他の本文及びそれに関連する独自に作成した図</simpara>
+<itemizedlist>
+<listitem>
+<simpara>クリエイティブ・コモンズ 表示 - 非営利 - 継承 4.0 国際 ライセンスの下に提供されています</simpara>
+</listitem>
+<listitem>
+<simpara>クレジットは <emphasis role="strong">&#169; でしぷろんぷと</emphasis> になります</simpara>
+</listitem>
+</itemizedlist>
+</listitem>
+</itemizedlist>
+<informalfigure>
+<mediaobject>
+<imageobject>
+<imagedata fileref="images/commons/88x31.png" contentwidth="88" contentdepth="31" align="center"/>
+</imageobject>
+<textobject><phrase>CC BY NC SA</phrase></textobject>
+</mediaobject>
+</informalfigure>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+<bibliography xml:id="_引用">
+<title>引用</title>
+<bibliodiv>
+<bibliomixed>
+<bibliomisc><anchor xml:id="ref1" xreflabel="[1]"/>[1] かわさきロボット競技大会実行委員会事務局, 'かわさきロボット競技大会　ホームページ'.
+[Online]. Available: <link xl:href="http://www.kawasaki-net.ne.jp/robo/">http://www.kawasaki-net.ne.jp/robo/</link>. [Accessed: Aug 8, 2017]</bibliomisc>
+</bibliomixed>
+<bibliomixed>
+<bibliomisc><anchor xml:id="ref2" xreflabel="[2]"/>[2] @takarakasai, 'イヌもどきかわさきロボット　開リンク機構による多様性の提案'. Tokyo: でしぷろんぷと, 2016
+(コミックマーケットC91にて頒布)</bibliomisc>
+</bibliomixed>
+<bibliomixed>
+<bibliomisc><anchor xml:id="ref3" xreflabel="[3]"/>[3] かわさきロボット競技大会実行委員会事務局, '第２３回かわさきロボット競技大会　バトルロボット部門　競技規則'.
+[Online]. Available: <link xl:href="http://www.kawasaki-net.ne.jp/robo/23th/battle/rule.html">http://www.kawasaki-net.ne.jp/robo/23th/battle/rule.html</link>. [Accessed: Aug 8, 2017]</bibliomisc>
+</bibliomixed>
+<bibliomixed>
+<bibliomisc><anchor xml:id="ref4" xreflabel="[4]"/>[4] マブチモータ, 'RS-380PH'.
+[Online]. Available: <link xl:href="https://www.marutsu.co.jp/contents/shop/marutsu/datasheet/rs380ph.pdf">https://www.marutsu.co.jp/contents/shop/marutsu/datasheet/rs380ph.pdf</link>. [Accessed: Aug 8, 2017]</bibliomisc>
+</bibliomixed>
+<bibliomixed>
+<bibliomisc><anchor xml:id="ref5" xreflabel="[5]"/>[5] beagleboard.org, 'BBB homepage'.
+[Online]. Available: <link xl:href="http://beagleboard.org/black">http://beagleboard.org/black</link>. [Accessed: Aug 8, 2017]</bibliomisc>
+</bibliomixed>
+</bibliodiv>
+</bibliography>
+<section xml:id="_使用しているフォント">
+<title>使用しているフォント</title>
+<simpara>あおぞら明朝（本文） <link xl:href="http://blueskis.wktk.so/AozoraMincho/">http://blueskis.wktk.so/AozoraMincho/</link></simpara>
+<simpara>源真ゴシック(見出し、本文太字など） <link xl:href="http://jikasei.me/font/genshin/">http://jikasei.me/font/genshin/</link></simpara>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+<section xml:id="_あとがき">
+<title>あとがき</title>
+<simpara>本書では工数などの関係から前書では言及しきれなかった電気ハードウェアとソフトウェアを言及することができました。
+次に書く薄い本では、歩行制御を含む全身制御的な部分もしくは本ロボットの物理シミュレーション、流行りのROSへの対応などの
+ネタを書くことができたらと思います。今後もお付き合いいただけましたら幸いです。</simpara>
+<simpara>本書を作成にあたって
+大会当日のサポートや表紙の作成など本誌執筆のサポートを快くしていただいた@kyo46さん大変助かりました。
+またおかきぬさん、ジャンルは違うものの追い込み時期に励まし合いながら作業することでなんとか書き上げることができました。
+どうもありがとうございました。</simpara>
+<simpara>それでは イヌもどきかわさきロボット 副題;SBCによる多脚ロボ制御システムの設計と実装 を最後までお読みいただきまことにありがとうございました。</simpara>
+<simpara><?asciidoc-pagebreak?></simpara>
+</section>
+<section xml:id="_奥付">
+<title>奥付</title>
+<section xml:id="_発行_作者">
+<title>発行・作者</title>
+<variablelist>
+<varlistentry>
+<term>発行</term>
+<listitem>
+<simpara>でし・ぷろんぷと</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>執筆</term>
+<listitem>
+<simpara>@takarakasai <footnote><simpara><link xl:href="https://github.com/takarakasai">https://github.com/takarakasai</link></simpara></footnote></simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>フォロー</term>
+<listitem>
+<simpara>@kyo46</simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>印刷</term>
+<listitem>
+<simpara>製本直送.com <footnote><simpara><link xl:href="https://www.seichoku.com">https://www.seichoku.com</link></simpara></footnote></simpara>
+</listitem>
+</varlistentry>
+<varlistentry>
+<term>発行日</term>
+<listitem>
+<simpara>2017 年 8 月 10 日 第 1 版 発行</simpara>
+</listitem>
+</varlistentry>
+</variablelist>
+</section>
+<section xml:id="_web">
+<title>Web</title>
+<simpara><link xl:href="http://khoya.net/">http://khoya.net/</link></simpara>
+<simpara><link xl:href="http://deshi-prompt.github.io/">http://deshi-prompt.github.io/</link></simpara>
+</section>
+<section xml:id="_mail">
+<title>Mail</title>
+<informalexample>
+<simpara><link xl:href="mailto:ada.robo1@gmail.com">ada.robo1@gmail.com</link></simpara>
+</informalexample>
+</section>
+</section>
+</article>
